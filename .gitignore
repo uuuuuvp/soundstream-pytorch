@@ -1,3 +1,11 @@
+./in_ss_16/*
+./ls16k/*
+./lsout16/*
+./out_ss/*
+./test/*
+
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

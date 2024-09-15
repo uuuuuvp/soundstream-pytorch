@@ -22,9 +22,9 @@ class ResNet1d(nn.Module):
     def __init__(
         self,
         n_channels,
-        kernel_size: int = 7,
-        padding: str = 'valid',
-        dilation: int = 1
+        kernel_size: int = 7,   # 卷积核大小
+        padding: str = 'valid', 
+        dilation: int = 1   # 扩展率
     ) -> None:
         super().__init__()
         assert padding in ['valid', 'same']
@@ -32,7 +32,7 @@ class ResNet1d(nn.Module):
         self.padding = padding
         self.dilation = dilation
         self._padding_size = (kernel_size // 2) * dilation
-        self.conv0 = nn.Conv1d(
+        self.conv0 = nn.Conv1d(     
             n_channels,
             n_channels,
             kernel_size=kernel_size,
@@ -46,7 +46,7 @@ class ResNet1d(nn.Module):
     def forward(self, input):
         y = input
         x = self.conv0(input)
-        x = F.elu(x)
+        x = F.elu(x)    # torch.nn.functional()非线性激活函数，加速模型的学习速度
         x = self.conv1(x)
         if self.padding == 'valid':
             y = y[:, :, self._padding_size:-self._padding_size]
@@ -173,9 +173,9 @@ class Encoder(nn.Module):
             nn.Conv1d(1, n_channels, kernel_size=7, padding=padding),
             nn.ELU(),
             EncoderBlock(2 * n_channels, padding=padding, stride=2),
-            EncoderBlock(4 * n_channels, padding=padding, stride=4),
+            EncoderBlock(4 * n_channels, padding=padding, stride=3),
             EncoderBlock(8 * n_channels, padding=padding, stride=5),
-            EncoderBlock(16 * n_channels, padding=padding, stride=8),
+            EncoderBlock(16 * n_channels, padding=padding, stride=6),
             nn.Conv1d(16 * n_channels, 16 * n_channels, kernel_size=3, padding=padding),
         )
 
@@ -190,9 +190,9 @@ class Decoder(nn.Module):
         self.layers = nn.Sequential(
             nn.Conv1d(16 * n_channels, 16 * n_channels, kernel_size=7, padding=padding),
             nn.ELU(),
-            DecoderBlock(16 * n_channels, padding=padding, stride=8),
+            DecoderBlock(16 * n_channels, padding=padding, stride=6),
             DecoderBlock(8 * n_channels, padding=padding, stride=5),
-            DecoderBlock(4 * n_channels, padding=padding, stride=4),
+            DecoderBlock(4 * n_channels, padding=padding, stride=3),
             DecoderBlock(2 * n_channels, padding=padding, stride=2),
             nn.Conv1d(n_channels, 1, kernel_size=7, padding=padding),
             nn.Tanh(),
@@ -468,7 +468,7 @@ class StreamableModel(pl.LightningModule):
         self.encoder = Encoder(n_channels, padding)
         self.decoder = Decoder(n_channels, padding)
         self.quantizer = ResidualVectorQuantizer(
-            num_quantizers, num_embeddings, n_channels * 16)
+            num_quantizers, num_embeddings, n_channels * 16)       #  定义了 quantize 模块 ！
 
         self.wave_discriminators = nn.ModuleList([
             WaveDiscriminator(resolution=1),
@@ -479,7 +479,7 @@ class StreamableModel(pl.LightningModule):
         self.stft_discriminator = STFTDiscriminator()
 
     def configure_optimizers(self):
-        lr = self.hparams.lr
+        lr = self.hparams.lr    # hparams 包含了定义模型时的所有参数
         b1 = self.hparams.b1
         b2 = self.hparams.b2
 
@@ -617,10 +617,10 @@ class StreamableModel(pl.LightningModule):
         if self.hparams.dataset == 'yesno':
             ds = torchaudio.datasets.YESNO("./data", download=True)
         elif self.hparams.dataset == 'librispeech-dev':
-            ds = torchaudio.datasets.LIBRISPEECH("./data", url="dev-clean")
+            ds = torchaudio.datasets.LIBRISPEECH("/data0/youyubo/you/SEStream/data/LibriTTS/", url="dev-clean")
         elif self.hparams.dataset == 'librispeech':
             url = "train-clean-100" if train else "dev-clean"
-            ds = torchaudio.datasets.LIBRISPEECH("./data", url=url)
+            ds = torchaudio.datasets.LIBRISPEECH("/data0/youyubo/you/SEStream/data/LibriTTS/", url=url)
         else:
             raise ValueError()
         ds = VoiceDataset(ds, self.hparams.sample_rate, self.hparams.segment_length)
